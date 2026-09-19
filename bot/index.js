@@ -41,6 +41,35 @@ function saveOrder(order) {
 function nextOrderId() {
   return readOrders().reduce((m, x) => Math.max(m, Number(x.id) || 0), 0) + 1;
 }
+function updateOrderStatus(id, status) {
+  const orders = readOrders();
+  const order = orders.find(x => Number(x.id) === Number(id));
+  if (!order) return null;
+  order.status = status;
+  order.updatedAt = new Date().toISOString();
+  fs.writeFileSync(ordersFile, JSON.stringify(orders, null, 2), "utf8");
+  return order;
+}
+function orderText(order) {
+  return (
+    `🛒 طلب جديد #${order.id} — أبو هاشم\n\n` +
+    `👤 الاسم: ${order.name}\n📱 الهاتف: ${order.phone}\n📍 العنوان: ${order.address}\n` +
+    `🧭 النقطة الدالة: ${order.landmark || "غير محددة"}\n\n📦 الطلبات:\n` +
+    order.items.map(x => `• ${x.name} × ${x.qty} = ${money(x.price * x.qty)}`).join("\n") +
+    `\n\n💰 المجموع: ${money(order.total)}\n📌 الحالة: ${order.status}`
+  );
+}
+function orderButtons(order) {
+  if (order.status !== "جديد") return { inline_keyboard: [] };
+  return {
+    inline_keyboard: [[
+      { text: "✅ قبول الطلب", callback_data: `order:accept:${order.id}` },
+      { text: "❌ رفض", callback_data: `order:reject:${order.id}` }
+    ], [
+      { text: "📦 تم التجهيز", callback_data: `order:ready:${order.id}` }
+    ]]
+  };
+}
 function setupAdminBot() {
   if (!process.env.ADMIN_BOT_TOKEN) return null;
   const bot = new TelegramBot(process.env.ADMIN_BOT_TOKEN, { polling: true });
@@ -106,6 +135,31 @@ function setupOrdersBot() {
   if (!process.env.ORDERS_BOT_TOKEN) return null;
   const bot = new TelegramBot(process.env.ORDERS_BOT_TOKEN, { polling: true });
   bot.onText(/^\/start$/, msg => bot.sendMessage(msg.chat.id, "📦 هذا بوت استقبال طلبات متجر أبو هاشم."));
+  bot.on("callback_query", async query => {
+    try {
+      const chatId = String(query.message?.chat?.id || "");
+      if (!ORDERS_CHAT_ID || chatId !== ORDERS_CHAT_ID) {
+        return bot.answerCallbackQuery(query.id, { text: "⛔ غير مصرح." });
+      }
+      const parts = String(query.data || "").split(":");
+      const statusMap = { accept: "مقبول", reject: "مرفوض", ready: "تم التجهيز" };
+      if (parts.length !== 3 || parts[0] !== "order" || !statusMap[parts[1]]) {
+        return bot.answerCallbackQuery(query.id, { text: "إجراء غير معروف." });
+      }
+      const status = statusMap[parts[1]];
+      const order = updateOrderStatus(parts[2], status);
+      if (!order) return bot.answerCallbackQuery(query.id, { text: "الطلب غير موجود." });
+      await bot.editMessageText(orderText(order), {
+        chat_id: query.message.chat.id,
+        message_id: query.message.message_id,
+        reply_markup: orderButtons(order)
+      });
+      await bot.answerCallbackQuery(query.id, { text: `تم تحديث الطلب إلى: ${status}` });
+    } catch (error) {
+      console.error("order status error:", error);
+      try { await bot.answerCallbackQuery(query.id, { text: "تعذر تحديث الطلب." }); } catch {}
+    }
+  });
   return bot;
 }
 
@@ -142,14 +196,9 @@ app.post("/api/orders", async (req, res) => {
       return res.status(503).json({ ok: false, message: "بوت الطلبات غير مفعّل بعد." });
     }
 
-    const text =
-      `🛒 طلب جديد #${id} — أبو هاشم\n\n` +
-      `👤 الاسم: ${order.name}\n📱 الهاتف: ${order.phone}\n📍 العنوان: ${order.address}\n` +
-      `🧭 النقطة الدالة: ${order.landmark || "غير محددة"}\n\n📦 الطلبات:\n` +
-      normalizedItems.map(x => `• ${x.name} × ${x.qty} = ${money(x.price * x.qty)}`).join("\n") +
-      `\n\n💰 المجموع: ${money(total)}`;
-
-    await ordersBot.sendMessage(ORDERS_CHAT_ID, text);
+    await ordersBot.sendMessage(ORDERS_CHAT_ID, orderText(order), {
+      reply_markup: orderButtons(order)
+    });
     res.json({ ok: true, orderId: id });
   } catch (error) {
     console.error("order error:", error);
