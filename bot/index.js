@@ -81,6 +81,7 @@ function orderButtons(order) {
 function setupAdminBot() {
   if (!process.env.ADMIN_BOT_TOKEN) return null;
   const bot = new TelegramBot(process.env.ADMIN_BOT_TOKEN, { polling: true });
+  bot.on("polling_error", error => console.error("admin bot polling error:", error.message));
 
   bot.onText(/^\/start$/, msg => {
     if (!adminOnly(bot, msg)) return;
@@ -149,6 +150,7 @@ function setupAdminBot() {
 function setupOrdersBot() {
   if (!process.env.ORDERS_BOT_TOKEN) return null;
   const bot = new TelegramBot(process.env.ORDERS_BOT_TOKEN, { polling: true });
+  bot.on("polling_error", error => console.error("orders bot polling error:", error.message));
   bot.onText(/^\/start$/, msg => bot.sendMessage(msg.chat.id, "📦 هذا بوت استقبال طلبات متجر أبو هاشم."));
   bot.on("callback_query", async query => {
     try {
