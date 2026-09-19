@@ -1,3 +1,4 @@
 node_modules/
 .env
-bot/data/orders.json
+.wrangler/
+.dev.vars
