@@ -2,7 +2,7 @@
   "name": "abu-hashim-store",
   "version": "2.0.0",
   "private": true,
-  "description": "متجر أبو هاشم على Cloudflare Workers + D1 + Telegram Webhooks",
+  "description": "متجر أبو هاشم على Vercel + Supabase + Telegram Webhooks",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
