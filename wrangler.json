@@ -4,5 +4,5 @@
   "main":"src/worker.js",
   "compatibility_date":"2026-09-20",
   "assets":{"directory":"./public","binding":"ASSETS"},
-  "d1_databases":[{"binding":"DB","database_name":"abu_hashim_db","database_id":"REPLACE_WITH_D1_DATABASE_ID","migrations_dir":"migrations"}]
+  "d1_databases":[{"binding":"DB","database_name":"abu_hashim_db","database_id":"00000001-00000000-000050eb-dd8f09ca3a59ce18e7bdcd52fdc903b0","migrations_dir":"migrations"}]
 }
