@@ -7,9 +7,14 @@ const fs = require("fs");
 const path = require("path");
 
 const app = express();
+app.disable("x-powered-by");
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
-app.use(express.static("."));
+
+const ROOT_DIR = path.join(__dirname, "..");
+app.get("/", (req, res) => res.sendFile(path.join(ROOT_DIR, "index.html")));
+app.get("/style.css", (req, res) => res.sendFile(path.join(ROOT_DIR, "style.css")));
+app.get("/script.js", (req, res) => res.sendFile(path.join(ROOT_DIR, "script.js")));
 
 const PORT = Number(process.env.PORT || 3000);
 const ADMIN_CHAT_ID = String(process.env.ADMIN_CHAT_ID || "").trim();
@@ -60,15 +65,18 @@ function orderText(order) {
   );
 }
 function orderButtons(order) {
-  if (order.status !== "جديد") return { inline_keyboard: [] };
-  return {
-    inline_keyboard: [[
+  if (order.status === "جديد") {
+    return { inline_keyboard: [[
       { text: "✅ قبول الطلب", callback_data: `order:accept:${order.id}` },
       { text: "❌ رفض", callback_data: `order:reject:${order.id}` }
-    ], [
+    ]] };
+  }
+  if (order.status === "مقبول") {
+    return { inline_keyboard: [[
       { text: "📦 تم التجهيز", callback_data: `order:ready:${order.id}` }
-    ]]
-  };
+    ]] };
+  }
+  return { inline_keyboard: [] };
 }
 function setupAdminBot() {
   if (!process.env.ADMIN_BOT_TOKEN) return null;
@@ -107,8 +115,11 @@ function setupAdminBot() {
     const parts = match[1].split("|").map(x => x.trim());
     if (parts.length < 3) return bot.sendMessage(msg.chat.id, "الصيغة:\n/add الاسم | السعر | التصنيف | الإيموجي");
     const [name, price, category, emoji = "🛒"] = parts;
-    if (!name || !Number(price) || !category) return bot.sendMessage(msg.chat.id, "تأكد من الاسم والسعر والتصنيف.");
-    const product = addProduct(name, Number(price), category, emoji);
+    const numericPrice = Number(price);
+    if (!name || !Number.isFinite(numericPrice) || numericPrice <= 0 || !category) {
+      return bot.sendMessage(msg.chat.id, "تأكد من الاسم والسعر والتصنيف.");
+    }
+    const product = addProduct(name, numericPrice, category, emoji);
     bot.sendMessage(msg.chat.id, `✅ تمت إضافة #${product.id} — ${product.n} — ${money(product.p)}`);
   });
   bot.onText(/^\/edit (.+)$/s, (msg, match) => {
@@ -116,7 +127,11 @@ function setupAdminBot() {
     const parts = match[1].split("|").map(x => x.trim());
     if (parts.length < 4) return bot.sendMessage(msg.chat.id, "الصيغة:\n/edit ID | الاسم | السعر | التصنيف | الإيموجي");
     const [id, name, price, category, emoji = "🛒"] = parts;
-    const product = updateProduct(id, { n: name, p: Number(price), c: category, e: emoji });
+    const numericPrice = Number(price);
+    if (!name || !Number.isFinite(numericPrice) || numericPrice <= 0 || !category) {
+      return bot.sendMessage(msg.chat.id, "تأكد من الاسم والسعر والتصنيف.");
+    }
+    const product = updateProduct(id, { n: name, p: numericPrice, c: category, e: emoji });
     bot.sendMessage(msg.chat.id, product ? `✅ تم تعديل #${product.id}` : "❌ المنتج غير موجود.");
   });
   bot.onText(/^\/(hide|show) (\d+)$/, (msg, match) => {
@@ -190,7 +205,6 @@ app.post("/api/orders", async (req, res) => {
       landmark: String(landmark || "").trim(), items: normalizedItems, total,
       status: "جديد", createdAt: new Date().toISOString()
     };
-    saveOrder(order);
 
     if (!ordersBot || !ORDERS_CHAT_ID) {
       return res.status(503).json({ ok: false, message: "بوت الطلبات غير مفعّل بعد." });
@@ -199,6 +213,7 @@ app.post("/api/orders", async (req, res) => {
     await ordersBot.sendMessage(ORDERS_CHAT_ID, orderText(order), {
       reply_markup: orderButtons(order)
     });
+    saveOrder(order);
     res.json({ ok: true, orderId: id });
   } catch (error) {
     console.error("order error:", error);
