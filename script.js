@@ -1,13 +1,13 @@
-let products=[],cart=JSON.parse(localStorage.getItem("abuCart")||"[]"),activeCat="الكل",query="",store={telegramUsername:""};
+let products=[],cart=JSON.parse(localStorage.getItem("abuCart")||"[]"),activeCat="الكل",query="",store={orderApiUrl:""};
 const grid=document.querySelector("#grid"),count=document.querySelector("#cartCount"),modal=document.querySelector("#cartModal"),checkout=document.querySelector("#checkoutModal");
 const money=n=>Number(n||0).toLocaleString("ar-IQ")+" د.ع";
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 async function loadProducts(){
  try{
-  const [pr,sr]=await Promise.all([fetch("/data/products.json"),fetch("/data/store.json")]);
+  const [pr,sr]=await Promise.all([fetch("/data/products.json?"+Date.now()),fetch("/data/store.json?"+Date.now())]);
   if(!pr.ok||!sr.ok)throw new Error();
   products=await pr.json(); store=await sr.json();
- }catch(e){products=[];store={telegramUsername:""}}
+ }catch(e){products=[];store={orderApiUrl:""}}
  render();save();
 }
 function render(){
@@ -24,26 +24,32 @@ function renderCart(){
  document.querySelector("#total").textContent=money(cart.reduce((s,x)=>s+products.find(p=>Number(p.id)===Number(x.id)).p*x.q,0));
 }
 function change(id,d){let x=cart.find(a=>Number(a.id)===Number(id));if(!x)return;x.q+=d;if(x.q<=0)cart=cart.filter(a=>Number(a.id)!==Number(id));save()}
-function orderText(name,phone,address,landmark){
- const lines=cart.map(x=>{const p=products.find(a=>Number(a.id)===Number(x.id));return "• "+p.n+" × "+x.q+" = "+money(p.p*x.q)}).join("\n");
- const total=cart.reduce((s,x)=>s+products.find(p=>Number(p.id)===Number(x.id)).p*x.q,0);
- return "🛒 طلب جديد — أبو هاشم\n\n👤 الاسم: "+name+"\n📱 الهاتف: "+phone+"\n📍 العنوان: "+address+"\n🧭 النقطة الدالة: "+(landmark||"غير محددة")+"\n\n📦 الطلبات:\n"+lines+"\n\n💰 المجموع: "+money(total);
-}
 document.querySelector("#cartBtn").onclick=()=>{renderCart();modal.classList.remove("hidden")};
 document.querySelector("#closeCart").onclick=()=>modal.classList.add("hidden");
 document.querySelector("#checkoutBtn").onclick=()=>{if(cart.length){modal.classList.add("hidden");checkout.classList.remove("hidden");document.querySelector("#orderMsg").textContent=""}};
 document.querySelector("#closeCheckout").onclick=()=>checkout.classList.add("hidden");
 document.querySelector("#search").oninput=e=>{query=e.target.value.trim();render()};
 document.querySelectorAll(".filters button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".filters button").forEach(x=>x.classList.remove("active"));b.classList.add("active");activeCat=b.dataset.cat;render()});
-document.querySelector("#orderForm").onsubmit=e=>{
+document.querySelector("#orderForm").onsubmit=async e=>{
  e.preventDefault();if(!cart.length)return;
  const f=new FormData(e.target),msg=document.querySelector("#orderMsg"),submit=e.target.querySelector('button[type="submit"]');
- if(!store.telegramUsername){msg.textContent="⚠️ رابط Telegram للمحل غير مضبوط بعد.";return}
- const text=orderText(f.get("name"),f.get("phone"),f.get("address"),f.get("landmark"));
- const url="https://t.me/"+String(store.telegramUsername).replace(/^@/,"")+"?text="+encodeURIComponent(text);
- window.open(url,"_blank");
- msg.textContent="✅ تم تجهيز الطلب داخل Telegram. اضغط إرسال من Telegram لإكمال الطلب.";
- cart=[];save();e.target.reset();submit.blur();
+ if(!store.orderApiUrl||store.orderApiUrl.includes("PUT_ORDER_WORKER_URL_HERE")){msg.textContent="⚠️ خدمة استقبال الطلبات غير مربوطة بعد.";return}
+ submit.disabled=true;submit.textContent="جاري إرسال الطلب...";
+ try{
+  const payload={
+   name:f.get("name"),phone:f.get("phone"),address:f.get("address"),landmark:f.get("landmark"),
+   items:cart.map(x=>({id:Number(x.id),qty:Number(x.q)}))
+  };
+  const r=await fetch(store.orderApiUrl,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
+  const data=await r.json().catch(()=>({}));
+  if(!r.ok||!data.ok)throw new Error();
+  msg.textContent="✅ تم إرسال طلبك للمحل بنجاح. رقم الطلب: "+data.orderId;
+  cart=[];save();e.target.reset();
+ }catch(err){
+  msg.textContent="❌ ما قدرنا نرسل الطلب حالياً. حاول مرة ثانية.";
+ }finally{
+  submit.disabled=false;submit.textContent="تأكيد وإرسال الطلب";
+ }
 };
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){modal.classList.add("hidden");checkout.classList.add("hidden")}});
 loadProducts();
