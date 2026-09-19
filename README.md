@@ -34,4 +34,6 @@ npm start
 ## الإعداد
 ضع `ADMIN_BOT_TOKEN` و`ORDERS_BOT_TOKEN` و`ADMIN_CHAT_ID` ويفضل `ORDERS_CHAT_ID` في `.env`.
 
+المشروع محدد على Node.js 20+ في `package.json`، ويوجد `Procfile` للتوافق مع خدمات استضافة Node التي تستخدم أمر web.
+
 لا تضع التوكنات داخل ملفات الواجهة أو المستودع العام.
