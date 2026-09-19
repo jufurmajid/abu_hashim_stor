@@ -4,7 +4,7 @@ const money=n=>Number(n||0).toLocaleString("ar-IQ")+" د.ع";
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 async function loadProducts(){
  try{
-  const [pr,sr]=await Promise.all([fetch("/data/products.json?"+Date.now()),fetch("/data/store.json?"+Date.now())]);
+  const [pr,sr]=await Promise.all([fetch("data/products.json?"+Date.now()),fetch("data/store.json?"+Date.now())]);
   if(!pr.ok||!sr.ok)throw new Error();
   products=await pr.json(); store=await sr.json();
  }catch(e){products=[];store={orderApiUrl:""}}
