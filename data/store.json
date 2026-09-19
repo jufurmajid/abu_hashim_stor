@@ -1,4 +1,4 @@
 {
-  "telegramUsername": "PUT_SHOP_TELEGRAM_USERNAME_HERE",
+  "orderApiUrl": "PUT_ORDER_WORKER_URL_HERE",
   "storeName": "أبو هاشم للحوم والألبان والأجبان"
 }
