@@ -204,16 +204,48 @@ export default {
         return new Response("OK");
       }
 
+      if (text === "/add") {
+        await send(chatId, "➕ اكتب المنتج بهذا الشكل:\nلحم عجل 16000\n\nمثال ثاني:\nحليب طازج السعر 2500", env);
+        return new Response("OK");
+      }
+
       if (text.startsWith("/add ")) {
-        const parts = text.slice(5).split("|").map(x => x.trim());
-        if (parts.length < 3) { await send(chatId, "❌ الصيغة:\n/add الاسم | السعر | التصنيف | الإيموجي", env); return new Response("OK"); }
-        const [name, priceRaw, category, emoji = "🛒"] = parts;
+        let input = text.slice(5).trim();
+        let name = "";
+        let priceRaw = "";
+        let category = "عام";
+        let emoji = "🛒";
+
+        const pipeParts = input.split("|").map(x => x.trim()).filter(Boolean);
+        if (pipeParts.length >= 2) {
+          name = pipeParts[0];
+          priceRaw = pipeParts[1];
+          category = pipeParts[2] || "عام";
+          emoji = pipeParts[3] || "🛒";
+        } else {
+          const priceMatch = input.match(/(?:السعر\\s*)?([0-9٠-٩]+(?:[.,][0-9٠-٩]+)?)\\s*(?:د\\.?ع|دينار)?\\s*$/i);
+          if (priceMatch) {
+            name = input.slice(0, priceMatch.index).trim().replace(/السعر\\s*$/i, "").trim();
+            priceRaw = priceMatch[1].replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)).replace(",", ".");
+          }
+        }
+
         const price = Number(priceRaw);
-        if (!name || !Number.isFinite(price) || price <= 0 || !category) { await send(chatId, "❌ تأكد من الاسم والسعر والتصنيف.", env); return new Response("OK"); }
+        if (!name || !Number.isFinite(price) || price <= 0) {
+          await send(chatId, "❌ ما فهمت المنتج والسعر. اكتب مثلاً:\n/add لحم عجل 16000\nأو\n/add لحم عجل السعر 16000", env);
+          return new Response("OK");
+        }
+
+        if (category === "عام") {
+          if (/لحم|دجاج|كباب|ستيك/i.test(name)) category = "لحوم";
+          else if (/حليب|لبن|روب|قشطة/i.test(name)) category = "ألبان";
+          else if (/جبن|جبنة|قشقوان/i.test(name)) category = "أجبان";
+        }
+
         const id = products.length ? Math.max(...products.map(p => Number(p.id) || 0)) + 1 : 1;
-        products.push({ id, n: name, p: Math.round(price), c: category, e: emoji || "🛒", active: true });
+        products.push({ id, n: name, p: Math.round(price), c: category, e: emoji, active: true });
         await githubSave(products, sha, `إضافة منتج #${id}: ${name}`, env);
-        await send(chatId, `✅ تمت إضافة #${id} — ${name}`, env);
+        await send(chatId, `✅ تمت إضافة #${id} — ${name} — ${Math.round(price).toLocaleString("ar-IQ")} د.ع`, env);
         return new Response("OK");
       }
 
