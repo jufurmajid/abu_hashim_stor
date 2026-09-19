@@ -16,6 +16,22 @@ function tg(method, body, env) {
   });
 }
 
+function decodeBase64Utf8(value) {
+  const binary = atob(value.replace(/\n/g, ""));
+  const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+  return new TextDecoder("utf-8").decode(bytes);
+}
+
+function encodeUtf8Base64(value) {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
 async function githubGet(env) {
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${PRODUCTS_PATH}?ref=main`, {
     headers: {
@@ -26,12 +42,12 @@ async function githubGet(env) {
   });
   if (!r.ok) throw new Error("GitHub read failed");
   const data = await r.json();
-  const content = atob(data.content.replace(/\n/g, ""));
+  const content = decodeBase64Utf8(data.content);
   return { products: JSON.parse(content), sha: data.sha };
 }
 
 async function githubSave(products, sha, message, env) {
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(products, null, 2) + "\n")));
+  const content = encodeUtf8Base64(JSON.stringify(products, null, 2) + "\n");
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${PRODUCTS_PATH}`, {
     method: "PUT",
     headers: {
