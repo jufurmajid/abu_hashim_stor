@@ -6,63 +6,21 @@
 <meta name="theme-color" content="#9d2f24">
 <title>أبو هاشم | للحوم والألبان والأجبان</title>
 <meta name="description" content="متجر أبو هاشم للحوم والألبان والأجبان">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <header>
   <div class="brand"><span class="logo">🥩</span><div><h1>أبو هاشم</h1><small>للحوم والألبان والأجبان</small></div></div>
   <button id="cartBtn" class="cartBtn">🛒 <span>السلة</span> <b id="cartCount">0</b></button>
 </header>
-
 <main>
-<section class="hero">
-  <div class="heroText">
-    <p class="tag">طازج • موثوق • يوصل لحد بابك</p>
-    <h2>كل اللي تحتاجه لبيتك<br><strong>بمكان واحد</strong></h2>
-    <p>اختار منتجاتك، حدد الكمية، وأرسل طلبك للمحل بكل سهولة.</p>
-    <a href="#products">تسوق الآن ←</a>
-  </div>
-  <div class="heroVisual" aria-hidden="true"><div>🥩</div><span>🥛</span><i>🧀</i></div>
-</section>
-
-<section class="trust">
-  <div>🥩 <span><b>لحوم طازجة</b><small>اختيارات يومية</small></span></div>
-  <div>🥛 <span><b>ألبان وأجبان</b><small>منتجات للبيت</small></span></div>
-  <div>📦 <span><b>طلب سريع</b><small>بدون تسجيل</small></span></div>
-</section>
-
-<section id="products">
-  <div class="sectionHead">
-    <div><p class="eyebrow">اختار اللي يعجبك</p><h2>منتجاتنا</h2><p>أضف المنتجات للسلة وحدد الكمية.</p></div>
-    <div class="tools"><input id="search" class="search" placeholder="🔎 ابحث عن منتج..." autocomplete="off">
-      <div class="filters"><button class="active" data-cat="الكل">الكل</button><button data-cat="لحوم">🥩 لحوم</button><button data-cat="ألبان">🥛 ألبان</button><button data-cat="أجبان">🧀 أجبان</button></div>
-    </div>
-  </div>
-  <div id="grid" class="grid"></div>
-</section>
+<section class="hero"><div class="heroText"><p class="tag">طازج • موثوق • يوصل لحد بابك</p><h2>كل اللي تحتاجه لبيتك<br><strong>بمكان واحد</strong></h2><p>اختار منتجاتك، حدد الكمية، وأرسل طلبك للمحل بكل سهولة.</p><a href="#products">تسوق الآن ←</a></div><div class="heroVisual" aria-hidden="true"><div>🥩</div><span>🥛</span><i>🧀</i></div></section>
+<section class="trust"><div>🥩 <span><b>لحوم طازجة</b><small>اختيارات يومية</small></span></div><div>🥛 <span><b>ألبان وأجبان</b><small>منتجات للبيت</small></span></div><div>📦 <span><b>طلب سريع</b><small>بدون تسجيل</small></span></div></section>
+<section id="products"><div class="sectionHead"><div><p class="eyebrow">اختار اللي يعجبك</p><h2>منتجاتنا</h2><p>أضف المنتجات للسلة وحدد الكمية.</p></div><div class="tools"><input id="search" class="search" placeholder="🔎 ابحث عن منتج..." autocomplete="off"><div class="filters"><button class="active" data-cat="الكل">الكل</button><button data-cat="لحوم">🥩 لحوم</button><button data-cat="ألبان">🥛 ألبان</button><button data-cat="أجبان">🧀 أجبان</button></div></div></div><div id="grid" class="grid"></div></section>
 </main>
-
-<div id="cartModal" class="modal hidden"><div class="panel">
-  <div class="panelHead"><div><p class="eyebrow">مراجعة الطلب</p><h2>🛒 سلة المشتريات</h2></div><button id="closeCart" class="close">✕</button></div>
-  <div id="cartItems"></div>
-  <div class="total"><span>المجموع</span><strong id="total">0 د.ع</strong></div>
-  <button id="checkoutBtn" class="primary">إكمال الطلب ←</button>
-</div></div>
-
-<div id="checkoutModal" class="modal hidden"><div class="panel">
-  <div class="panelHead"><div><p class="eyebrow">خطوة أخيرة</p><h2>📦 بيانات التوصيل</h2></div><button id="closeCheckout" class="close">✕</button></div>
-  <p class="hint">اكتب معلوماتك حتى نكدر نتواصل وياك لتأكيد الطلب.</p>
-  <form id="orderForm">
-    <label>الاسم<input name="name" required placeholder="مثلاً: جعفر ماجد"></label>
-    <label>رقم الهاتف<input name="phone" required inputmode="tel" placeholder="07xxxxxxxxx"></label>
-    <label>العنوان<input name="address" required placeholder="المنطقة والشارع"></label>
-    <label>أقرب نقطة دالة <small>(اختياري)</small><input name="landmark" placeholder="مثلاً قرب جامع أو مدرسة"></label>
-    <button class="primary" type="submit">تأكيد وإرسال الطلب</button>
-  </form>
-  <p id="orderMsg"></p>
-</div></div>
-
+<div id="cartModal" class="modal hidden"><div class="panel"><div class="panelHead"><div><p class="eyebrow">مراجعة الطلب</p><h2>🛒 سلة المشتريات</h2></div><button id="closeCart" class="close">✕</button></div><div id="cartItems"></div><div class="total"><span>المجموع</span><strong id="total">0 د.ع</strong></div><button id="checkoutBtn" class="primary">إكمال الطلب ←</button></div></div>
+<div id="checkoutModal" class="modal hidden"><div class="panel"><div class="panelHead"><div><p class="eyebrow">خطوة أخيرة</p><h2>📦 بيانات التوصيل</h2></div><button id="closeCheckout" class="close">✕</button></div><p class="hint">اكتب معلوماتك حتى نكدر نتواصل وياك لتأكيد الطلب.</p><form id="orderForm"><label>الاسم<input name="name" required placeholder="مثلاً: جعفر ماجد"></label><label>رقم الهاتف<input name="phone" required inputmode="tel" placeholder="07xxxxxxxxx"></label><label>العنوان<input name="address" required placeholder="المنطقة والشارع"></label><label>أقرب نقطة دالة <small>(اختياري)</small><input name="landmark" placeholder="مثلاً قرب جامع أو مدرسة"></label><button class="primary" type="submit">تأكيد وإرسال الطلب</button></form><p id="orderMsg"></p></div></div>
 <footer><strong>أبو هاشم</strong> للحوم والألبان والأجبان<br><span>تم التطوير بواسطة جعفر ماجد</span></footer>
-<script src="script.js"></script>
+<script src="/script.js"></script>
 </body>
 </html>
