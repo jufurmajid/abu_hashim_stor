@@ -2,8 +2,7 @@ let products=[];
 let cart=JSON.parse(localStorage.getItem("abuCart")||"[]"),activeCat="الكل",query="";
 const grid=document.querySelector("#grid"),count=document.querySelector("#cartCount"),modal=document.querySelector("#cartModal"),checkout=document.querySelector("#checkoutModal");
 const money=n=>Number(n||0).toLocaleString("ar-IQ")+" د.ع";
-const fallback=[{id:1,n:"لحم غنم",p:18000,c:"لحوم",e:"🥩"},{id:2,n:"لحم عجل",p:16000,c:"لحوم",e:"🥩"},{id:3,n:"حليب طازج",p:2500,c:"ألبان",e:"🥛"},{id:4,n:"لبن",p:2000,c:"ألبان",e:"🥛"},{id:5,n:"جبن أبيض",p:4500,c:"أجبان",e:"🧀"},{id:6,n:"جبن مثلثات",p:3500,c:"أجبان",e:"🧀"}];
-
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 async function loadProducts(){
   try{
     const r=await fetch("/api/products");
@@ -11,7 +10,7 @@ async function loadProducts(){
     const data=await r.json();
     products=Array.isArray(data)&&data.length?data:[];
   }catch(e){
-    products=fallback;
+    products=[];
   }
   render();
   save();
@@ -20,7 +19,7 @@ async function loadProducts(){
 function render(){
   const q=query.toLowerCase();
   const list=products.filter(x=>(activeCat==="الكل"||x.c===activeCat)&&String(x.n).toLowerCase().includes(q));
-  grid.innerHTML=list.length?list.map(x=>'<article class="card"><div class="pic">'+x.e+'</div><h3>'+x.n+'</h3><div class="price">'+money(x.p)+'</div><button onclick="add('+x.id+')">أضف للسلة</button></article>').join(""):'<p class="empty">🔎 ماكو منتجات مطابقة للبحث.</p>';
+  grid.innerHTML=list.length?list.map(x=>'<article class="card"><div class="pic">'+esc(x.e)+'</div><h3>'+esc(x.n)+'</h3><div class="price">'+money(x.p)+'</div><button onclick="add('+Number(x.id)+')">أضف للسلة</button></article>').join(""):'<p class="empty">🔎 ماكو منتجات مطابقة للبحث.</p>';
 }
 
 function save(){
@@ -51,7 +50,7 @@ function renderCart(){
   }
   box.innerHTML=cart.map(x=>{
     const p=products.find(a=>a.id===x.id);
-    return '<div class="cartRow"><div><div class="cartName">'+p.e+" "+p.n+'</div><small>'+money(p.p)+'</small></div><div class="qty"><button onclick="change('+x.id+',-1)">−</button> '+x.q+' <button onclick="change('+x.id+',1)">+</button></div></div>';
+    return '<div class="cartRow"><div><div class="cartName">'+esc(p.e)+" "+esc(p.n)+'</div><small>'+money(p.p)+'</small></div><div class="qty"><button onclick="change('+Number(x.id)+',-1)">−</button> '+Number(x.q)+' <button onclick="change('+Number(x.id)+',1)">+</button></div></div>';
   }).join("");
   document.querySelector("#total").textContent=money(cart.reduce((s,x)=>s+products.find(p=>p.id===x.id).p*x.q,0));
 }
