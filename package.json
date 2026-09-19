@@ -1,14 +1,6 @@
 {
   "name": "abu-hashim-store",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "private": true,
-  "description": "متجر أبو هاشم على Vercel + Supabase + Telegram Webhooks",
-  "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "db:migrate": "wrangler d1 migrations apply abu_hashim_db --remote"
-  },
-  "devDependencies": {
-    "wrangler": "^4.38.0"
-  }
+  "description": "متجر أبو هاشم — موقع ثابت، المنتجات تدار من GitHub والطلبات عبر Telegram"
 }
