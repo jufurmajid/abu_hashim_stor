@@ -1,8 +1,0 @@
-{
-  "$schema":"./node_modules/wrangler/config-schema.json",
-  "name":"abu-hashim-stor",
-  "main":"src/worker.js",
-  "compatibility_date":"2026-09-20",
-  "assets":{"directory":"./public","binding":"ASSETS"},
-  "d1_databases":[{"binding":"DB","database_name":"abu_hashim_db","database_id":"05808806-f9c8-4b35-b671-c717f842d541","migrations_dir":"migrations"}]
-}
