@@ -68,6 +68,95 @@ async function send(chatId, text, env) {
 function help() {
   return `🛠️ أبو هاشم — إدارة المنتجات
 
+لإضافة منتج بسهولة:
+أرسل /add
+ثم البوت يسألك عن:
+1️⃣ اسم المنتج
+2️⃣ السعر
+3️⃣ التصنيف (اختياري)
+4️⃣ الإيموجي (اختياري)
+
+أمثلة:
+لحم عجل
+16000
+
+ويمكنك استخدام الأوامر:
+/edit رقم
+/hide رقم
+/show رقم
+/delete رقم
+/list
+/help`;
+}nst REPO = "jufurmajid/abu_hashim_stor";
+const PRODUCTS_PATH = "data/products.json";
+
+function json(data, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { "content-type": "application/json; charset=utf-8" }
+  });
+}
+
+function tg(method, body, env) {
+  return fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/${method}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body)
+  });
+}
+
+function decodeBase64Utf8(value) {
+  const binary = atob(value.replace(/\n/g, ""));
+  const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+  return new TextDecoder("utf-8").decode(bytes);
+}
+
+function encodeUtf8Base64(value) {
+  const bytes = new TextEncoder().encode(value);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+async function githubGet(env) {
+  const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${PRODUCTS_PATH}?ref=main`, {
+    headers: {
+      "Accept": "application/vnd.github+json",
+      "Authorization": `Bearer ${env.GITHUB_TOKEN}`,
+      "User-Agent": "abu-hashim-admin-bot"
+    }
+  });
+  if (!r.ok) throw new Error("GitHub read failed");
+  const data = await r.json();
+  const content = decodeBase64Utf8(data.content);
+  return { products: JSON.parse(content), sha: data.sha };
+}
+
+async function githubSave(products, sha, message, env) {
+  const content = encodeUtf8Base64(JSON.stringify(products, null, 2) + "\n");
+  const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${PRODUCTS_PATH}`, {
+    method: "PUT",
+    headers: {
+      "Accept": "application/vnd.github+json",
+      "Authorization": `Bearer ${env.GITHUB_TOKEN}`,
+      "User-Agent": "abu-hashim-admin-bot",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ message, content, sha, branch: "main" })
+  });
+  if (!r.ok) {\n    const body = await r.text();\n    console.error("GitHub write failed:", r.status, body);\n    throw new Error(`GitHub write failed (${r.status}): ${body.slice(0, 500)}`);\n  }
+}
+
+async function send(chatId, text, env) {
+  await tg("sendMessage", { chat_id: chatId, text }, env);
+}
+
+function help() {
+  return `🛠️ أبو هاشم — إدارة المنتجات
+
 /add اسم | السعر | التصنيف | الإيموجي
 مثال:
 /add لحم غنم | 18000 | لحوم | 🥩
