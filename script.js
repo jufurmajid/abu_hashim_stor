@@ -12,7 +12,7 @@ async function loadProducts(){
 }
 function render(){
  const q=query.toLowerCase();
- const list=products.filter(x=>(activeCat==="الكل"||x.c===activeCat)&&String(x.n).toLowerCase().includes(q));
+ const list=products.filter(x=>x.active!==false&&(activeCat==="الكل"||x.c===activeCat)&&String(x.n).toLowerCase().includes(q));
  grid.innerHTML=list.length?list.map(x=>'<article class="card"><div class="pic">'+esc(x.e)+'</div><h3>'+esc(x.n)+'</h3><div class="price">'+money(x.p)+'</div><button onclick="add('+Number(x.id)+')">أضف للسلة</button></article>').join(""):'<p class="empty">🔎 ماكو منتجات مطابقة للبحث.</p>';
 }
 function save(){localStorage.setItem("abuCart",JSON.stringify(cart));renderCart();count.textContent=cart.reduce((a,x)=>a+x.q,0)}
