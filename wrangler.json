@@ -1,6 +1,6 @@
 {
   "$schema":"./node_modules/wrangler/config-schema.json",
-  "name":"abu-hashim-store",
+  "name":"abu-hashim-stor",
   "main":"src/worker.js",
   "compatibility_date":"2026-09-20",
   "assets":{"directory":"./public","binding":"ASSETS"},
