@@ -1,18 +1,14 @@
 {
   "name": "abu-hashim-store",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "description": "متجر أبو هاشم مع بوت إدارة وبوت استقبال طلبات",
+  "description": "متجر أبو هاشم على Cloudflare Workers + D1 + Telegram Webhooks",
   "scripts": {
-    "start": "node bot/index.js"
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 migrations apply abu_hashim_db --remote"
   },
-  "dependencies": {
-    "express": "^4.21.2",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.7",
-    "node-telegram-bot-api": "^0.66.0"
-  },
-  "engines": {
-    "node": ">=20 <23"
+  "devDependencies": {
+    "wrangler": "^4.38.0"
   }
 }
