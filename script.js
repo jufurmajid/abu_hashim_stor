@@ -81,7 +81,10 @@ document.querySelector("#orderForm").onsubmit=async e=>{
   });
   const total=items.reduce((s,x)=>s+x.price*x.qty,0);
   const msg=document.querySelector("#orderMsg");
-  msg.textContent="⏳ جاري إرسال الطلب...";
+  const submit=e.target.querySelector("button[type=\"submit\"]");
+  submit.disabled=true;
+  submit.textContent="⏳ جاري إرسال الطلب...";
+  msg.textContent="";
   try{
     const r=await fetch("/api/orders",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name:f.get("name"),phone:f.get("phone"),address:f.get("address"),landmark:f.get("landmark"),items,total})});
     const data=await r.json();
@@ -92,6 +95,9 @@ document.querySelector("#orderForm").onsubmit=async e=>{
     e.target.reset();
   }catch(err){
     msg.textContent="❌ تعذر إرسال الطلب حالياً. حاول مرة ثانية.";
+  } finally {
+    submit.disabled=false;
+    submit.textContent="تأكيد وإرسال الطلب";
   }
 };
 
