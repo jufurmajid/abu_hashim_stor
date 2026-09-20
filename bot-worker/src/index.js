@@ -89,7 +89,9 @@ function help() {
 /delete رقم
 /list
 /help`;
-}nst REPO = "jufurmajid/abu_hashim_stor";
+}
+
+const REPO = "jufurmajid/abu_hashim_stor";
 const PRODUCTS_PATH = "data/products.json";
 
 function json(data, status = 200) {
