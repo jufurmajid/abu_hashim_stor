@@ -179,26 +179,6 @@ function help() {
   };
 }
 
-function help() {
-  return `🛠️ إدارة أبو هاشم
-
-اختار العملية من الأزرار بالأسفل 👇
-
-📸 إضافة المنتج:
-أرسل صورة المنتج واكتب وياها الاسم والسعر.
-مثال: صورة + لحم غنم 18000
-
-بعدها استخدم الأزرار حتى تعرض أو تخفي أو تحذف المنتجات.`;
-}
-
-async function sendMenu(chatId, env) {
-  await tg("sendMessage", {
-    chat_id: chatId,
-    text: "🛍️ لوحة إدارة أبو هاشم\\n\\nاختار شتريد تسوي:",
-    reply_markup: adminMenu()
-  }, env);
-}
-
 export default {
   async fetch(request, env) {
     if (request.method !== "POST") return new Response("OK");
