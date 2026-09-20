@@ -91,9 +91,6 @@ function help() {
 /help`;
 }
 
-const REPO = "jufurmajid/abu_hashim_stor";
-const PRODUCTS_PATH = "data/products.json";
-
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -151,7 +148,9 @@ async function githubSave(products, sha, message, env) {
     },
     body: JSON.stringify({ message, content, sha, branch: "main" })
   });
-  if (!r.ok) {\n    const body = await r.text();\n    console.error("GitHub write failed:", r.status, body);\n    throw new Error(`GitHub write failed (${r.status}): ${body.slice(0, 500)}`);\n  }
+  if (!r.ok) {
+    throw new Error("GitHub write failed");
+  }
 }
 
 async function send(chatId, text, env) {
