@@ -13,14 +13,14 @@ async function loadProducts(){
 function render(){
  const q=query.toLowerCase();
  const list=products.filter(x=>x.active!==false&&(activeCat==="الكل"||x.c===activeCat)&&String(x.n).toLowerCase().includes(q));
- grid.innerHTML=list.length?list.map(x=>'<article class="card"><div class="pic">'+esc(x.e)+'</div><h3>'+esc(x.n)+'</h3><div class="price">'+money(x.p)+'</div><button onclick="add('+Number(x.id)+')">أضف للسلة</button></article>').join(""):'<p class="empty">🔎 ماكو منتجات مطابقة للبحث.</p>';
+ grid.innerHTML=list.length?list.map(x=>'<article class="card"><div class="pic">'+(x.image?'<img src="'+esc(x.image)+'" alt="'+esc(x.n)+'" loading="lazy">':esc(x.e||"🛒"))+'</div><h3>'+esc(x.n)+'</h3><div class="price">'+money(x.p)+'</div><button onclick="add('+Number(x.id)+')">أضف للسلة</button></article>').join(""):'<p class="empty">🔎 ماكو منتجات مطابقة للبحث.</p>';
 }
 function save(){localStorage.setItem("abuCart",JSON.stringify(cart));renderCart();count.textContent=cart.reduce((a,x)=>a+x.q,0)}
 function add(id){if(!products.some(p=>Number(p.id)===Number(id)))return;let x=cart.find(a=>Number(a.id)===Number(id));x?x.q++:cart.push({id:Number(id),q:1});save();document.querySelector("#cartBtn").animate([{transform:"scale(1)"},{transform:"scale(1.06)"},{transform:"scale(1)"}],{duration:220})}
 function renderCart(){
  const box=document.querySelector("#cartItems");cart=cart.filter(x=>products.some(p=>Number(p.id)===Number(x.id)));
  if(!cart.length){box.innerHTML='<div class="empty">🛒 السلة فارغة حالياً.<br><small>اختار منتجات من المتجر وأضفها هنا.</small></div>';document.querySelector("#total").textContent=money(0);return}
- box.innerHTML=cart.map(x=>{const p=products.find(a=>Number(a.id)===Number(x.id));return '<div class="cartRow"><div><div class="cartName">'+esc(p.e)+" "+esc(p.n)+'</div><small>'+money(p.p)+'</small></div><div class="qty"><button onclick="change('+Number(x.id)+',-1)">−</button> '+Number(x.q)+' <button onclick="change('+Number(x.id)+',1)">+</button></div></div>'}).join("");
+ box.innerHTML=cart.map(x=>{const p=products.find(a=>Number(a.id)===Number(x.id));return '<div class="cartRow"><div><div class="cartName">'+esc(p.e||"🛒")+" "+esc(p.n)+'</div><small>'+money(p.p)+'</small></div><div class="qty"><button onclick="change('+Number(x.id)+',-1)">−</button> '+Number(x.q)+' <button onclick="change('+Number(x.id)+',1)">+</button></div></div>'}).join("");
  document.querySelector("#total").textContent=money(cart.reduce((s,x)=>s+products.find(p=>Number(p.id)===Number(x.id)).p*x.q,0));
 }
 function change(id,d){let x=cart.find(a=>Number(a.id)===Number(id));if(!x)return;x.q+=d;if(x.q<=0)cart=cart.filter(a=>Number(a.id)!==Number(id));save()}
@@ -36,20 +36,14 @@ document.querySelector("#orderForm").onsubmit=async e=>{
  if(!store.orderApiUrl||store.orderApiUrl.includes("PUT_ORDER_WORKER_URL_HERE")){msg.textContent="⚠️ خدمة استقبال الطلبات غير مربوطة بعد.";return}
  submit.disabled=true;submit.textContent="جاري إرسال الطلب...";
  try{
-  const payload={
-   name:f.get("name"),phone:f.get("phone"),address:f.get("address"),landmark:f.get("landmark"),
-   items:cart.map(x=>({id:Number(x.id),qty:Number(x.q)}))
-  };
+  const payload={name:f.get("name"),phone:f.get("phone"),address:f.get("address"),landmark:f.get("landmark"),items:cart.map(x=>({id:Number(x.id),qty:Number(x.q)}))};
   const r=await fetch(store.orderApiUrl,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload)});
   const data=await r.json().catch(()=>({}));
   if(!r.ok||!data.ok)throw new Error();
   msg.textContent="✅ تم إرسال طلبك للمحل بنجاح. رقم الطلب: "+data.orderId;
   cart=[];save();e.target.reset();
- }catch(err){
-  msg.textContent="❌ ما قدرنا نرسل الطلب حالياً. حاول مرة ثانية.";
- }finally{
-  submit.disabled=false;submit.textContent="تأكيد وإرسال الطلب";
- }
+ }catch(err){msg.textContent="❌ ما قدرنا نرسل الطلب حالياً. حاول مرة ثانية."}
+ finally{submit.disabled=false;submit.textContent="تأكيد وإرسال الطلب"}
 };
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){modal.classList.add("hidden");checkout.classList.add("hidden")}});
 loadProducts();
