@@ -278,9 +278,10 @@ export default {
       return new Response("OK");
     } catch (e) {
       console.error("Admin bot error:", e);
+      const detail = e?.message ? e.message.slice(0, 900) : "خطأ غير معروف";
       await send(
         chatId,
-        "⚠️ صار خطأ أثناء تحديث GitHub. جرّب مرة ثانية.",
+        "⚠️ خطأ GitHub:\n" + detail,
         env
       );
       return new Response("OK");
