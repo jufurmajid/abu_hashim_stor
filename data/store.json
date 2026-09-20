@@ -1,4 +1,4 @@
 {
-  "orderApiUrl": "PUT_ORDER_WORKER_URL_HERE",
+  "orderApiUrl": "https://order-worker.jaafarmajid.workers.dev/",
   "storeName": "أبو هاشم للحوم والألبان والأجبان"
 }
