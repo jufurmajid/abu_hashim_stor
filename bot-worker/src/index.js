@@ -58,11 +58,7 @@ async function githubSave(products, sha, message, env) {
     },
     body: JSON.stringify({ message, content, sha, branch: "main" })
   });
-  if (!r.ok) {
-    const body = await r.text();
-    console.error("GitHub write failed:", r.status, body);
-    throw new Error(`GitHub write failed (${r.status}): ${body.slice(0, 500)}`);
-  }
+  if (!r.ok) throw new Error("GitHub write failed");
 }
 
 async function send(chatId, text, env) {
