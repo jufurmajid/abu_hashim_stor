@@ -77,15 +77,26 @@ async function githubSave(products, sha, message, env) {
 
 async function githubUpload(path, bytes, message, env) {
   const content = encodeBytesBase64(bytes);
-  const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+  const base = `https://api.github.com/repos/${REPO}/contents/${path}`;
+  const headers = {
+    "Accept": "application/vnd.github+json",
+    "Authorization": `Bearer ${env.GITHUB_TOKEN}`,
+    "User-Agent": "abu-hashim-admin-bot",
+    "Content-Type": "application/json"
+  };
+  const existing = await fetch(`${base}?ref=main`, { headers });
+  const payload = { message, content, branch: "main" };
+  if (existing.ok) {
+    const data = await existing.json();
+    if (data.sha) payload.sha = data.sha;
+  } else if (existing.status !== 404) {
+    const body = await existing.text();
+    throw new Error(`Image check failed (${existing.status}): ${body.slice(0, 500)}`);
+  }
+  const r = await fetch(base, {
     method: "PUT",
-    headers: {
-      "Accept": "application/vnd.github+json",
-      "Authorization": `Bearer ${env.GITHUB_TOKEN}`,
-      "User-Agent": "abu-hashim-admin-bot",
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ message, content, branch: "main" })
+    headers,
+    body: JSON.stringify(payload)
   });
   if (!r.ok) {
     const body = await r.text();
