@@ -32,6 +32,15 @@ function encodeUtf8Base64(value) {
   return btoa(binary);
 }
 
+function encodeBytesBase64(bytes) {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
 async function githubGet(env) {
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${PRODUCTS_PATH}?ref=main`, {
     headers: {
@@ -40,19 +49,16 @@ async function githubGet(env) {
       "User-Agent": "abu-hashim-admin-bot"
     }
   });
-
-  if (!r.ok) {
-    throw new Error(`GitHub read failed: ${r.status}`);
-  }
-
+  if (!r.ok) throw new Error(`GitHub read failed: ${r.status}`);
   const data = await r.json();
-  const content = decodeBase64Utf8(data.content);
-  return { products: JSON.parse(content), sha: data.sha };
+  return {
+    products: JSON.parse(decodeBase64Utf8(data.content)),
+    sha: data.sha
+  };
 }
 
 async function githubSave(products, sha, message, env) {
   const content = encodeUtf8Base64(JSON.stringify(products, null, 2) + "\n");
-
   const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${PRODUCTS_PATH}`, {
     method: "PUT",
     headers: {
@@ -61,39 +67,43 @@ async function githubSave(products, sha, message, env) {
       "User-Agent": "abu-hashim-admin-bot",
       "Content-Type": "application/json"
     },
-    body: JSON.stringify({
-      message,
-      content,
-      sha,
-      branch: "main"
-    })
+    body: JSON.stringify({ message, content, sha, branch: "main" })
   });
-
   if (!r.ok) {
     const body = await r.text();
     throw new Error(`GitHub write failed (${r.status}): ${body.slice(0, 500)}`);
   }
 }
 
-async function send(chatId, text, env) {
-  await tg("sendMessage", { chat_id: chatId, text }, env);
+async function githubUpload(path, bytes, message, env) {
+  const content = encodeBytesBase64(bytes);
+  const r = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+    method: "PUT",
+    headers: {
+      "Accept": "application/vnd.github+json",
+      "Authorization": `Bearer ${env.GITHUB_TOKEN}`,
+      "User-Agent": "abu-hashim-admin-bot",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ message, content, branch: "main" })
+  });
+  if (!r.ok) {
+    const body = await r.text();
+    throw new Error(`Image upload failed (${r.status}): ${body.slice(0, 500)}`);
+  }
 }
 
-function help() {
-  return `🛠️ أبو هاشم — إدارة المنتجات
+async function getTelegramPhotoBytes(fileId, env) {
+  const r = await tg("getFile", { file_id: fileId }, env);
+  const data = await r.json();
+  if (!data.ok || !data.result?.file_path) throw new Error("Telegram image download failed");
+  const image = await fetch(`https://api.telegram.org/file/bot${env.TELEGRAM_BOT_TOKEN}/${data.result.file_path}`);
+  if (!image.ok) throw new Error("Telegram image fetch failed");
+  return new Uint8Array(await image.arrayBuffer());
+}
 
-➕ إضافة:
- /add لحم عجل 16000
- /add حليب طازج السعر 2500
-
-✏️ تعديل:
- /edit رقم | الاسم | السعر | التصنيف | الإيموجي
-
-👁️ /hide رقم
-👁️ /show رقم
-🗑️ /delete رقم
-📦 /list
-ℹ️ /help`;
+async function send(chatId, text, env) {
+  await tg("sendMessage", { chat_id: chatId, text }, env);
 }
 
 function detectCategory(name) {
@@ -104,11 +114,59 @@ function detectCategory(name) {
 }
 
 function parsePrice(value) {
-  const normalized = value
+  const normalized = String(value || "")
     .replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d))
     .replace(/[,،]/g, "")
     .replace(/\s+/g, "");
   return Number(normalized);
+}
+
+function parseProductInput(input) {
+  let text = String(input || "").trim().replace(/^\/add\s*/i, "").trim();
+  const parts = text.split("|").map(x => x.trim()).filter(Boolean);
+  let name = "";
+  let priceRaw = "";
+
+  if (parts.length >= 2) {
+    name = parts[0];
+    priceRaw = parts[1];
+  } else {
+    const match = text.match(/(?:السعر\s*)?([0-9٠-٩]+(?:[.,،][0-9٠-٩]+)?)\s*(?:د\.?ع|دينار)?\s*$/i);
+    if (match) {
+      name = text.slice(0, match.index).trim().replace(/السعر\s*$/i, "").trim();
+      priceRaw = match[1];
+    }
+  }
+
+  const price = parsePrice(priceRaw);
+  if (!name || !Number.isFinite(price) || price <= 0) return null;
+
+  return {
+    name,
+    price: Math.round(price),
+    category: parts.length >= 3 ? parts[2] : detectCategory(name),
+    emoji: parts.length >= 4 ? parts[3] : "🛒"
+  };
+}
+
+function help() {
+  return `🛠️ إدارة أبو هاشم — بسيطة جداً
+
+📸 لإضافة منتج:
+أرسل صورة المنتج واكتب بالسطر نفسه:
+لحم غنم 18000
+
+مثال:
+📷 صورة + "حليب طازج 2500"
+
+البوت يحفظ الصورة والاسم والسعر تلقائياً.
+
+📦 /list — عرض المنتجات
+🗑️ /delete 1 — حذف منتج
+👁️ /hide 1 — إخفاء
+👁️ /show 1 — إظهار
+
+إذا تريد إضافة منتج جديد: فقط صورة + الاسم + السعر.`;
 }
 
 export default {
@@ -128,11 +186,11 @@ export default {
     }
 
     const msg = update.message;
-    if (!msg?.chat?.id || !msg?.text) return new Response("OK");
+    if (!msg?.chat?.id) return new Response("OK");
     if (String(msg.chat.id) !== String(env.ADMIN_CHAT_ID)) return new Response("OK");
 
-    const text = msg.text.trim();
     const chatId = msg.chat.id;
+    const text = (msg.text || msg.caption || "").trim();
 
     try {
       if (text === "/start" || text === "/help") {
@@ -146,100 +204,69 @@ export default {
         const lines = products.map(p =>
           `${p.active === false ? "🔴" : "🟢"} #${p.id} — ${p.n} — ${Number(p.p).toLocaleString("ar-IQ")} د.ع`
         );
-        await send(
-          chatId,
-          lines.length ? "📦 المنتجات:\n\n" + lines.join("\n") : "📦 ماكو منتجات.",
-          env
-        );
+        await send(chatId, lines.length ? "📦 المنتجات:\n\n" + lines.join("\n") : "📦 المتجر فارغ حالياً.", env);
+        return new Response("OK");
+      }
+
+      const photo = msg.photo?.length ? msg.photo[msg.photo.length - 1] : null;
+
+      if (photo) {
+        const product = parseProductInput(text);
+        if (!product) {
+          await send(chatId, "❌ ارسل صورة واكتب بالوصف: اسم المنتج + السعر\nمثال: لحم غنم 18000", env);
+          return new Response("OK");
+        }
+
+        const id = products.length ? Math.max(...products.map(p => Number(p.id) || 0)) + 1 : 1;
+        const imagePath = `data/products/${id}.jpg`;
+        const bytes = await getTelegramPhotoBytes(photo.file_id, env);
+
+        if (bytes.byteLength > 8 * 1024 * 1024) {
+          await send(chatId, "❌ الصورة كبيرة جداً. أرسل صورة أقل من 8MB.", env);
+          return new Response("OK");
+        }
+
+        await githubUpload(imagePath, bytes, `إضافة صورة المنتج #${id}`, env);
+
+        products.push({
+          id,
+          n: product.name,
+          p: product.price,
+          c: product.category,
+          e: product.emoji,
+          image: imagePath,
+          active: true
+        });
+
+        await githubSave(products, sha, `إضافة المنتج #${id}: ${product.name}`, env);
+        await send(chatId, `✅ تمت إضافة المنتج #${id}\n📦 ${product.name}\n💰 ${product.price.toLocaleString("ar-IQ")} د.ع\n🖼️ الصورة محفوظة وتظهر بالمتجر.`, env);
         return new Response("OK");
       }
 
       if (text === "/add") {
-        await send(
-          chatId,
-          "➕ اكتب المنتج والسعر بسطر واحد:\n\n/add لحم عجل 16000\n/add حليب طازج السعر 2500",
-          env
-        );
+        await send(chatId, "📸 أسهل طريقة:\nأرسل صورة المنتج واكتب وياها الاسم والسعر.\n\nمثال:\nصورة + لحم عجل 16000", env);
         return new Response("OK");
       }
 
       if (text.startsWith("/add ")) {
-        const input = text.slice(5).trim();
-        let name = "";
-        let priceRaw = "";
-
-        const pipeParts = input.split("|").map(x => x.trim()).filter(Boolean);
-
-        if (pipeParts.length >= 2) {
-          name = pipeParts[0];
-          priceRaw = pipeParts[1];
-        } else {
-          const priceMatch = input.match(/(?:السعر\s*)?([0-9٠-٩]+(?:[.,،][0-9٠-٩]+)?)\s*(?:د\.?ع|دينار)?\s*$/i);
-          if (priceMatch) {
-            name = input.slice(0, priceMatch.index).trim();
-            name = name.replace(/السعر\s*$/i, "").trim();
-            priceRaw = priceMatch[1];
-          }
-        }
-
-        const price = parsePrice(priceRaw);
-
-        if (!name || !Number.isFinite(price) || price <= 0) {
-          await send(
-            chatId,
-            "❌ ما فهمت المنتج والسعر.\n\nاكتب مثلاً:\n/add لحم عجل 16000\nأو\n/add لحم عجل السعر 16000",
-            env
-          );
+        const product = parseProductInput(text);
+        if (!product) {
+          await send(chatId, "❌ اكتب مثلاً:\n/add لحم عجل 16000\n\nوالأفضل: صورة + الاسم والسعر.", env);
           return new Response("OK");
         }
 
-        const category = pipeParts.length >= 3 ? pipeParts[2] : detectCategory(name);
-        const emoji = pipeParts.length >= 4 ? pipeParts[3] : "🛒";
-        const id = products.length
-          ? Math.max(...products.map(p => Number(p.id) || 0)) + 1
-          : 1;
-
+        const id = products.length ? Math.max(...products.map(p => Number(p.id) || 0)) + 1 : 1;
         products.push({
           id,
-          n: name,
-          p: Math.round(price),
-          c: category,
-          e: emoji,
+          n: product.name,
+          p: product.price,
+          c: product.category,
+          e: product.emoji,
           active: true
         });
 
-        await githubSave(products, sha, `إضافة منتج #${id}: ${name}`, env);
-        await send(
-          chatId,
-          `✅ تمت إضافة #${id} — ${name} — ${Math.round(price).toLocaleString("ar-IQ")} د.ع`,
-          env
-        );
-        return new Response("OK");
-      }
-
-      if (text.startsWith("/edit ")) {
-        const parts = text.slice(6).split("|").map(x => x.trim());
-        if (parts.length < 4) {
-          await send(chatId, "❌ الصيغة:\n/edit رقم | الاسم | السعر | التصنيف | الإيموجي", env);
-          return new Response("OK");
-        }
-
-        const id = Number(parts[0]);
-        const price = parsePrice(parts[2]);
-        const p = products.find(x => Number(x.id) === id);
-
-        if (!p || !Number.isFinite(price) || price <= 0) {
-          await send(chatId, "❌ المنتج غير موجود أو السعر غير صحيح.", env);
-          return new Response("OK");
-        }
-
-        p.n = parts[1];
-        p.p = Math.round(price);
-        p.c = parts[3];
-        p.e = parts[4] || p.e || "🛒";
-
-        await githubSave(products, sha, `تعديل المنتج #${id}: ${p.n}`, env);
-        await send(chatId, `✅ تم تعديل المنتج #${id}`, env);
+        await githubSave(products, sha, `إضافة المنتج #${id}: ${product.name}`, env);
+        await send(chatId, `✅ تمت إضافة #${id} — ${product.name} — ${product.price.toLocaleString("ar-IQ")} د.ع`, env);
         return new Response("OK");
       }
 
@@ -260,30 +287,15 @@ export default {
         if (action === "delete") products.splice(index, 1);
 
         await githubSave(products, sha, `${action} المنتج #${id}`, env);
-
-        await send(
-          chatId,
-          action === "delete"
-            ? `🗑️ تم حذف #${id}`
-            : action === "hide"
-              ? `🔴 تم إخفاء #${id}`
-              : `🟢 تم إظهار #${id}`,
-          env
-        );
-
+        await send(chatId, action === "delete" ? `🗑️ تم حذف #${id}` : action === "hide" ? `🔴 تم إخفاء #${id}` : `🟢 تم إظهار #${id}`, env);
         return new Response("OK");
       }
 
-      await send(chatId, "❓ الأمر غير معروف. اكتب /help", env);
+      await send(chatId, "❓ اكتب /help لمعرفة طريقة الإدارة.", env);
       return new Response("OK");
     } catch (e) {
       console.error("Admin bot error:", e);
-      const detail = e?.message ? e.message.slice(0, 900) : "خطأ غير معروف";
-      await send(
-        chatId,
-        "⚠️ خطأ GitHub:\n" + detail,
-        env
-      );
+      await send(chatId, "⚠️ صار خطأ:\n" + (e?.message || "خطأ غير معروف").slice(0, 900), env);
       return new Response("OK");
     }
   }
