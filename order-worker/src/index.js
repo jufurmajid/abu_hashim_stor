@@ -102,6 +102,15 @@ export default {
     try {
       const update = await request.json();
 
+      // Ensure Telegram webhook is configured whenever Telegram sends an update.
+      if (update.callback_query || update.message) {
+        const webhookUrl = new URL(request.url).origin + "/";
+        await telegram("setWebhook", {
+          url: webhookUrl,
+          allowed_updates: ["message", "callback_query"]
+        }, env);
+      }
+
       if (update.callback_query) {
         const callback = update.callback_query;
         const chatId = callback.message?.chat?.id;
