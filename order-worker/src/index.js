@@ -83,7 +83,21 @@ export default {
       }
     });
 
-    if (request.method !== "POST") return json({ ok: true, service: "abu-hashim-order-bot" });
+    if (request.method !== "POST") {
+      if (request.method === "GET" && new URL(request.url).pathname === "/setup") {
+        const webhookUrl = new URL(request.url).origin + "/";
+        const result = await telegram("setWebhook", {
+          url: webhookUrl,
+          allowed_updates: ["message", "callback_query"]
+        }, env);
+        return json({
+          ok: true,
+          webhook: result.result === true,
+          description: result.description || ""
+        });
+      }
+      return json({ ok: true, service: "abu-hashim-order-bot" });
+    }
 
     try {
       const update = await request.json();
