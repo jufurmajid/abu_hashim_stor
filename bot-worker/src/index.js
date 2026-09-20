@@ -215,6 +215,59 @@ export default {
       return new Response("Bad JSON", { status: 400 });
     }
 
+    const callback = update.callback_query;
+    if (callback?.message?.chat?.id) {
+      if (String(callback.message.chat.id) !== String(env.ADMIN_CHAT_ID)) return new Response("OK");
+      const chatId = callback.message.chat.id;
+      const data = callback.data || "";
+      await tg("answerCallbackQuery", { callback_query_id: callback.id }, env);
+      try {
+        const { products, sha } = await githubGet(env);
+        if (data === "menu") { await sendMenu(chatId, env); return new Response("OK"); }
+        if (data === "help") { await send(chatId, help(), env); await sendMenu(chatId, env); return new Response("OK"); }
+        if (data === "add") { await send(chatId, "📸 أرسل صورة المنتج واكتب وياها الاسم والسعر.\nمثال: صورة + لحم غنم 18000", env); return new Response("OK"); }
+        if (data === "list") {
+          const lines = products.map(p => (p.active === false ? "🔴" : "🟢") + " #" + p.id + " — " + p.n + " — " + Number(p.p).toLocaleString("ar-IQ") + " د.ع");
+          await send(chatId, lines.length ? "📦 المنتجات:\n\n" + lines.join("\n") : "📦 المتجر فارغ حالياً.", env);
+          await sendMenu(chatId, env); return new Response("OK");
+        }
+        const menuMatch = data.match(/^(hide_menu|show_menu|delete_menu)$/);
+        if (menuMatch) {
+          const action = menuMatch[1].replace("_menu", "");
+          if (!products.length) { await send(chatId, "📦 ماكو منتجات حالياً.", env); await sendMenu(chatId, env); return new Response("OK"); }
+          const buttons = products.map(p => [{ text: (p.active === false ? "🔴" : "🟢") + " #" + p.id + " — " + p.n, callback_data: action + ":" + p.id }]);
+          buttons.push([{ text: "⬅️ رجوع", callback_data: "menu" }]);
+          await tg("sendMessage", { chat_id: chatId, text: action === "delete" ? "🗑️ اختار المنتج اللي تريد تحذفه:" : action === "hide" ? "👁️ اختار المنتج اللي تريد تخفيه:" : "🟢 اختار المنتج اللي تريد تظهره:", reply_markup: { inline_keyboard: buttons } }, env);
+          return new Response("OK");
+        }
+        const actionMatch = data.match(/^(hide|show|delete):(\d+)$/);
+        if (actionMatch) {
+          const action = actionMatch[1], id = Number(actionMatch[2]);
+          const index = products.findIndex(x => Number(x.id) === id);
+          if (index < 0) { await send(chatId, "❌ المنتج غير موجود.", env); return new Response("OK"); }
+          if (action === "delete") {
+            const p = products[index];
+            await tg("sendMessage", { chat_id: chatId, text: "⚠️ تأكيد حذف المنتج #" + id + " — " + p.n + "\n\nاختار نعم أو لا:", reply_markup: { inline_keyboard: [[{ text: "✅ نعم، احذف", callback_data: "confirm_delete:" + id }], [{ text: "❌ لا، إلغاء", callback_data: "menu" }]] } }, env);
+            return new Response("OK");
+          }
+          products[index].active = action === "show";
+          await githubSave(products, sha, action + " المنتج #" + id, env);
+          await send(chatId, (action === "show" ? "🟢 تم إظهار #" : "🔴 تم إخفاء #") + id + " — " + products[index].n, env);
+          await sendMenu(chatId, env); return new Response("OK");
+        }
+        const confirm = data.match(/^confirm_delete:(\d+)$/);
+        if (confirm) {
+          const id = Number(confirm[1]);
+          const index = products.findIndex(x => Number(x.id) === id);
+          if (index < 0) { await send(chatId, "❌ المنتج غير موجود.", env); return new Response("OK"); }
+          const name = products[index].n; products.splice(index, 1);
+          await githubSave(products, sha, "حذف المنتج #" + id, env);
+          await send(chatId, "🗑️ تم حذف المنتج #" + id + " — " + name, env);
+          await sendMenu(chatId, env); return new Response("OK");
+        }
+      } catch (e) { await send(chatId, "⚠️ صار خطأ:\n" + (e?.message || "خطأ غير معروف").slice(0, 900), env); }
+      return new Response("OK");
+    }
     const msg = update.message;
     if (!msg?.chat?.id) return new Response("OK");
     if (String(msg.chat.id) !== String(env.ADMIN_CHAT_ID)) return new Response("OK");
@@ -224,7 +277,7 @@ export default {
 
     try {
       if (text === "/start" || text === "/help") {
-        await send(chatId, help(), env);
+        await sendMenu(chatId, env);
         return new Response("OK");
       }
 
