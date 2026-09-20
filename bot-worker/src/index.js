@@ -149,7 +149,7 @@ function parseProductInput(input) {
   };
 }
 
-function help() {
+function adminHelp() {
   return `🛠️ إدارة أبو هاشم — بسيطة جداً
 
 📸 لإضافة منتج:
@@ -204,7 +204,7 @@ export default {
       try {
         const { products, sha } = await githubGet(env);
         if (data === "menu") { await sendMenu(chatId, env); return new Response("OK"); }
-        if (data === "help") { await send(chatId, help(), env); await sendMenu(chatId, env); return new Response("OK"); }
+        if (data === "help") { await send(chatId, adminHelp(), env); await sendMenu(chatId, env); return new Response("OK"); }
         if (data === "add") { await send(chatId, "📸 أرسل صورة المنتج واكتب وياها الاسم والسعر.\nمثال: صورة + لحم غنم 18000", env); return new Response("OK"); }
         if (data === "list") {
           const lines = products.map(p => (p.active === false ? "🔴" : "🟢") + " #" + p.id + " — " + p.n + " — " + Number(p.p).toLocaleString("ar-IQ") + " د.ع");
