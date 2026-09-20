@@ -16,7 +16,20 @@ function render(){
  grid.innerHTML=list.length?list.map(x=>'<article class="card"><div class="pic">'+(x.image?'<img src="'+esc(x.image)+'" alt="'+esc(x.n)+'" loading="lazy">':esc(x.e||"🛒"))+'</div><h3>'+esc(x.n)+'</h3><div class="price">'+money(x.p)+'</div><button onclick="add('+Number(x.id)+')">أضف للسلة</button></article>').join(""):'<p class="empty">🔎 ماكو منتجات مطابقة للبحث.</p>';
 }
 function save(){localStorage.setItem("abuCart",JSON.stringify(cart));renderCart();count.textContent=cart.reduce((a,x)=>a+x.q,0)}
-function add(id){if(!products.some(p=>Number(p.id)===Number(id)))return;let x=cart.find(a=>Number(a.id)===Number(id));x?x.q++:cart.push({id:Number(id),q:1});save();document.querySelector("#cartBtn").animate([{transform:"scale(1)"},{transform:"scale(1.06)"},{transform:"scale(1)"}],{duration:220})}
+function add(id){
+ const source=document.querySelector(`button[onclick="add(${Number(id)})"]`),cartBtn=document.querySelector("#cartBtn");
+ if(!products.some(p=>Number(p.id)===Number(id)))return;
+ let x=cart.find(a=>Number(a.id)===Number(id));x?x.q++:cart.push({id:Number(id),q:1});save();
+ if(source&&cartBtn){
+  const a=source.getBoundingClientRect(),b=cartBtn.getBoundingClientRect(),fly=document.createElement("div");
+  fly.className="cartFly";fly.textContent="🛒";fly.style.left=a.left+a.width/2-18+"px";fly.style.top=a.top+a.height/2-18+"px";
+  fly.style.setProperty("--dx",(b.left+b.width/2-(a.left+a.width/2))+"px");fly.style.setProperty("--dy",(b.top+b.height/2-(a.top+a.height/2))+"px");
+  document.body.appendChild(fly);setTimeout(()=>fly.remove(),650);
+ }
+ cartBtn.animate([{transform:"scale(1)"},{transform:"scale(1.18)"},{transform:"scale(.96)"},{transform:"scale(1.05)"},{transform:"scale(1)"}],{duration:650,easing:"ease-out"});
+ cartBtn.classList.remove("cartAttention");void cartBtn.offsetWidth;cartBtn.classList.add("cartAttention");
+ setTimeout(()=>cartBtn.classList.remove("cartAttention"),900);
+}
 function renderCart(){
  const box=document.querySelector("#cartItems");cart=cart.filter(x=>products.some(p=>Number(p.id)===Number(x.id)));
  if(!cart.length){box.innerHTML='<div class="empty">🛒 السلة فارغة حالياً.<br><small>اختار منتجات من المتجر وأضفها هنا.</small></div>';document.querySelector("#total").textContent=money(0);return}
