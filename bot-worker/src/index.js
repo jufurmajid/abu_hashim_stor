@@ -270,6 +270,30 @@ export default {
         return new Response("OK");
       }
 
+      const replyText = msg.reply_to_message?.text || "";
+      const deleteReply = replyText.match(/تأكيد حذف المنتج #([0-9]+)/);
+
+      if (deleteReply && /^(نعم|نعم\s*،?\s*احذف|لا)$/i.test(text)) {
+        const id = Number(deleteReply[1]);
+        const index = products.findIndex(x => Number(x.id) === id);
+
+        if (text.startsWith("لا")) {
+          await send(chatId, "❎ تم إلغاء الحذف.", env);
+          return new Response("OK");
+        }
+
+        if (index < 0) {
+          await send(chatId, "❌ المنتج غير موجود.", env);
+          return new Response("OK");
+        }
+
+        const productName = products[index].n;
+        products.splice(index, 1);
+        await githubSave(products, sha, `حذف المنتج #${id}`, env);
+        await send(chatId, `🗑️ تم حذف المنتج #${id} — ${productName}`, env);
+        return new Response("OK");
+      }
+
       const one = text.match(/^\/(hide|show|delete)\s+(\d+)$/);
 
       if (one) {
@@ -282,12 +306,21 @@ export default {
           return new Response("OK");
         }
 
+        if (action === "delete") {
+          const p = products[index];
+          await tg("sendMessage", {
+            chat_id: chatId,
+            text: `⚠️ تأكيد حذف المنتج #${id} — ${p.n}\\n\\nاكتب «نعم» للحذف أو «لا» للإلغاء.`,
+            reply_markup: { force_reply: true, input_field_placeholder: "نعم أو لا" }
+          }, env);
+          return new Response("OK");
+        }
+
         if (action === "hide") products[index].active = false;
         if (action === "show") products[index].active = true;
-        if (action === "delete") products.splice(index, 1);
 
         await githubSave(products, sha, `${action} المنتج #${id}`, env);
-        await send(chatId, action === "delete" ? `🗑️ تم حذف #${id}` : action === "hide" ? `🔴 تم إخفاء #${id}` : `🟢 تم إظهار #${id}`, env);
+        await send(chatId, action === "hide" ? `🔴 تم إخفاء #${id}` : `🟢 تم إظهار #${id}`, env);
         return new Response("OK");
       }
 
