@@ -167,7 +167,15 @@ function adminHelp() {
 👁️ /show 1 — إظهار
 
 إذا تريد إضافة منتج جديد: فقط صورة + الاسم + السعر.`;
-}function adminMenu() {
+}async function sendMenu(chatId, env) {
+  await tg("sendMessage", {
+    chat_id: chatId,
+    text: "🛍️ لوحة إدارة أبو هاشم\\n\\nاختار شتريد تسوي:",
+    reply_markup: adminMenu()
+  }, env);
+}
+
+function adminMenu() {
   return {
     inline_keyboard: [
       [{ text: "📦 المنتجات", callback_data: "list" }],
