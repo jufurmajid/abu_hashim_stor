@@ -7,5 +7,14 @@
     "e": "🛒",
     "image": "data/products/1.jpg",
     "active": true
+  },
+  {
+    "id": 2,
+    "n": "صباح سداسي",
+    "p": 15000,
+    "c": "عام",
+    "e": "🛒",
+    "image": "data/products/2.jpg",
+    "active": true
   }
 ]
