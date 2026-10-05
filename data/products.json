@@ -25,5 +25,14 @@
     "e": "🛒",
     "image": "data/products/3.jpg",
     "active": true
+  },
+  {
+    "id": 4,
+    "n": "قشطه سليمانيه",
+    "p": 17000,
+    "c": "عام",
+    "e": "🛒",
+    "image": "data/products/4.jpg",
+    "active": true
   }
 ]
